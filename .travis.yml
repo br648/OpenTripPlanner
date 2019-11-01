@@ -56,6 +56,8 @@ before_deploy:
   # Get branch name of current branch for use in jar name: https://graysonkoonce.com/getting-the-current-branch-name-during-a-pull-request-in-travis-ci/
   - export BRANCH=$(if [ "$TRAVIS_PULL_REQUEST" == "false" ]; then echo $TRAVIS_BRANCH; else echo $TRAVIS_PULL_REQUEST_BRANCH; fi)
   # Copy shaded jar over to deploy dir as git-described jar (either version or version+commit) and branch-specific jar.
+  - echo $TRAVIS_BRANCH
+  - echo $BRANCH
   - mkdir deploy
   - cp target/*-shaded.jar deploy/otp-$(git describe --always).jar
   - cp target/*-shaded.jar deploy/otp-latest-$BRANCH.jar
