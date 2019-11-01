@@ -12,7 +12,7 @@ install: true
 # Only run the test suite
 script:
   #  - mvn clean verify --settings maven-settings.xml -B -V -Dgpg.skip
-  - echo "skip"
+  - mvn -DskipTests package
 
 # if on ibi-dev branch, then upload docs to IBI s3 buckets & cloudfront
 after_success:
