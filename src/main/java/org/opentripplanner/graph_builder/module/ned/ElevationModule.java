@@ -118,7 +118,7 @@ public class ElevationModule implements GraphBuilderModule {
                     }
                     nProcessed += 1;
                     if (nProcessed % 50000 == 0) {
-                        log.info("set elevation on {}/{} edges", nProcessed, nTotal);
+                        log.info("Set elevation on {}/{} edges", nProcessed, nTotal);
                         double failurePercentage = nPointsOutsideDEM / nPointsEvaluated * 100;
                         if (failurePercentage > 50) {
                             log.warn(graph.addBuilderAnnotation(new Graphwide(
