@@ -2,22 +2,31 @@ package org.opentripplanner.geocoder.bano;
 
 import org.junit.Assume;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.opentripplanner.common.geometry.SphericalDistanceLibrary;
 import org.opentripplanner.geocoder.GeocoderResult;
 import org.opentripplanner.geocoder.GeocoderResults;
 
+<<<<<<< HEAD
 import com.vividsolutions.jts.geom.Envelope;
 import java.io.IOException;
 import java.net.URL;
 import java.net.UnknownHostException;
+=======
+import org.locationtech.jts.geom.Envelope;
+>>>>>>> dev-1.x
 
 public class BanoGeocoderTest {
 
     /**
+     * NOTE! THIS TEST RELAY ON AN ON-LINE EXTERNAL API (Bano Geocoder) TO BE UP AN RUNNING, WHICH
+     * MAY NOT BE THE CASE. HENCE THE '@Ignore'.
+     * <p>
      * TODO -- This unit-test rely on an on-line API to be up and running, which may not be the case
      * if a network connection is not active or the server is down.
      */
     @Test
+<<<<<<< HEAD
     public void testOnLine() throws IOException {
         assumeConnectedToInternet();
 
@@ -41,14 +50,29 @@ public class BanoGeocoderTest {
 //            }
 //        }
 //        assert (found);
+=======
+    @Ignore
+    public void testOnLine() throws Exception {
+>>>>>>> dev-1.x
 
     }
 
+<<<<<<< HEAD
     private static void assumeConnectedToInternet() throws IOException {
         try {
             new URL("http://www.google.com").openConnection().connect();
         } catch (UnknownHostException e) {
             Assume.assumeTrue("Skips tests if not on internet.", false);
+=======
+        boolean found = false;
+        for (GeocoderResult result : results.getResults()) {
+            if (result.getDescription().contains("55 Rue du Faubourg")) {
+                double dist = SphericalDistanceLibrary.distance(result.getLat(),
+                        result.getLng(), 48.870637, 2.316939);
+                assert (dist < 100);
+                found = true;
+            }
+>>>>>>> dev-1.x
         }
     }
 }

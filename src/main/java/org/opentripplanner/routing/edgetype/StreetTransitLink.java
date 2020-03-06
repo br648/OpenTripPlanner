@@ -1,7 +1,5 @@
 package org.opentripplanner.routing.edgetype;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.model.Trip;
 import org.opentripplanner.common.geometry.GeometryUtils;
 import org.opentripplanner.routing.core.RoutingRequest;
@@ -12,6 +10,9 @@ import org.opentripplanner.routing.graph.Edge;
 import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.vertextype.StreetVertex;
 import org.opentripplanner.routing.vertextype.TransitStop;
+
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.LineString;
 
 import java.util.Locale;
 
@@ -85,6 +86,11 @@ public class StreetTransitLink extends Edge {
             return null;
         }
 
+        // Do not get off at a real stop when on call-n-ride (force a transfer instead).
+        if (s0.isLastBoardAlightDeviated() && !(transitStop.checkCallAndRideStreetLinkOk(s0))) {
+            return null;
+        }
+
         RoutingRequest req = s0.getOptions();
         if (s0.getOptions().wheelchairAccessible && !wheelchairAccessible) {
             return null;
@@ -106,8 +112,7 @@ public class StreetTransitLink extends Edge {
 
         /* Determine if transit should be boarded if currently driving a car */
         /* Note that in arriveBy searches this is double-traversing link edges to fork the state into both WALK and CAR mode. This is an insane hack. */
-        if (s0.getNonTransitMode() == TraverseMode.CAR) {
-            // OK to leave car if in Kiss and Ride mode
+        if (s0.getNonTransitMode() == TraverseMode.CAR && !req.enterStationsWithCar) {
             if (req.kissAndRide && !s0.isCarParked()) {
                 s1.setCarParked(true);
             } else if (req.useTransportationNetworkCompany && s0.isUsingHailedCar()) {
@@ -198,6 +203,5 @@ public class StreetTransitLink extends Edge {
     public String toString() {
         return "StreetTransitLink(" + fromv + " -> " + tov + ")";
     }
-
 
 }

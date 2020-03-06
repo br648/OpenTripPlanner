@@ -96,12 +96,24 @@ public class GraphBuilderParameters {
     public final boolean platformEntriesLinking;
 
     /**
+     * Based on GTFS shape data, guess which OSM streets each bus runs on to improve stop linking.
+     */
+    public final boolean matchBusRoutesToStreets;
+
+    /**
      * Download US NED elevation data and apply it to the graph.
      */
     public final boolean fetchElevationUS;
 
     /** If specified, download NED elevation tiles from the given AWS S3 bucket. */
     public final S3BucketConfig elevationBucket;
+
+    /**
+     * Unit conversion multiplier for elevation values. No conversion needed if the elevation values
+     * are defined in meters in the source data. If, for example, decimetres are used in the source data,
+     * this should be set to 0.1.
+    */
+    public final double elevationUnitMultiplier;
 
     /**
      * A specific fares service to use.
@@ -216,8 +228,10 @@ public class GraphBuilderParameters {
         embedRouterConfig = config.path("embedRouterConfig").asBoolean(true);
         areaVisibility = config.path("areaVisibility").asBoolean(false);
         platformEntriesLinking = config.path("platformEntriesLinking").asBoolean(false);
+        matchBusRoutesToStreets = config.path("matchBusRoutesToStreets").asBoolean(false);
         fetchElevationUS = config.path("fetchElevationUS").asBoolean(false);
         elevationBucket = S3BucketConfig.fromConfig(config.path("elevationBucket"));
+        elevationUnitMultiplier = config.path("elevationUnitMultiplier").asDouble(1);
         fareServiceFactory = DefaultFareServiceFactory.fromConfig(config.path("fares"));
         customNamer = CustomNamer.CustomNamerFactory.fromConfig(config.path("osmNaming"));
         wayPropertySet = WayPropertySetSource.fromConfig(config.path("osmWayPropertySet").asText("default"));

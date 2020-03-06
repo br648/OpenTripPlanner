@@ -89,6 +89,7 @@ config key | description | value type | value default | notes
 `fares` | A specific fares service to use | object | null | see [fares configuration](#fares-configuration)
 `osmNaming` | A custom OSM namer to use | object | null | see [custom naming](#custom-naming)
 `osmWayPropertySet` | Custom OSM way properties | string | `default` | options: `default`, `norway`
+`elevationUnitMultiplier` | Specify a multiplier to convert elevation units from source to meters | double | 1.0 | see [Elevation unit conversion](#elevation-unit-conversion)
 `staticBikeRental` | Whether bike rental stations should be loaded from OSM, rather than periodically dynamically pulled from APIs | boolean | false | 
 `staticParkAndRide` | Whether we should create car P+R stations from OSM data | boolean | true | 
 `staticBikeParkAndRide` | Whether we should create bike P+R stations from OSM data | boolean | false | 
@@ -112,7 +113,7 @@ When planning a trip, we need to allow additional time to reach these locations 
 example, this helps avoid suggesting short bus rides between two subway rides as a way to improve travel time. You can
 specify how long it takes to reach a subway platform
 
-```JSON
+```JSONC
 // build-config.json
 {
   "subwayAccessTime": 2.5
@@ -140,12 +141,11 @@ yield very realistic transfer time expectations. This works particularly well in
 the layering of non-intersecting ways is less prevalent. Here's an example in the Netherlands:
 
 <iframe width="425" height="350" frameborder="0" scrolling="no" marginheight="0" marginwidth="0" src="http://www.openstreetmap.org/export/embed.html?bbox=4.70502644777298%2C52.01675028000761%2C4.7070810198783875%2C52.01813190694357&amp;layer=mapnik" style="border: 1px solid black"></iframe><small><a href="http://www.openstreetmap.org/#map=19/52.01744/4.70605">View Larger Map</a></small>
-
 When such micro-mapping data is not available, we need to rely on information from GTFS including how stops are grouped
 into stations and a table of transfer timings where available. During the graph build, OTP can create preferential
 connections between each pair of stops in the same station to favor in-station transfers:
 
-```JSON
+```JSONC
 // build-config.json
 {
   "stationTransfers": true
@@ -174,7 +174,7 @@ but once the tiles are downloaded OTP will keep them in local cache for the next
 To auto-download NED tiles when building your graph, add the following line to `build-config.json` in your router
 directory:
 
-```JSON
+```JSONC
 // build-config.json
 {
   "fetchElevationUS": true
@@ -188,7 +188,7 @@ whole dataset in bulk if you [send them a hard drive](http://ned.usgs.gov/faq.ht
 another module that will then automatically fetch data in this format from an Amazon S3 copy of your bulk data.
 You can configure it as follows in `build-config.json`:
 
-```JSON
+```JSONC
 {
     "elevationBucket" : {
         "accessKey" : "your-aws-access-key",
@@ -219,6 +219,7 @@ order as the above-mentioned SRTM data, which is also the default for the popula
 DEM files(USGS DEM) is not supported by OTP, but can be converted to GeoTIFF with tools like [GDAL](http://www.gdal.org/). 
 Use `gdal_merge.py -o merged.tiff *.dem` to merge a set of `dem` files into one `tif` file.
 
+<<<<<<< HEAD
 ### Elevation Data Calculation Optimizations
 
 Calculating elevations on all StreetEdges can take a dramatically long time. In a very large graph build for multiple Northeast US states, the time it took to download the elevation data and calculate all of the elevations took 5,509 seconds (roughly 1.5 hours).
@@ -228,10 +229,19 @@ If you are using cloud computing for your OTP instances, it is recommended to cr
 However, the bulk of the time will still be spent calculating elevations for all of the street edges. Therefore, a further optimization can be done to calculate and save the elevation data during a graph build and then save it for future use.
 
 In order to write out the precalculated elevation data, add this to your `build-config.json` file:
+=======
+See Interline [PlanetUtils](https://github.com/interline-io/planetutils) for a set of scripts to download, merge, and resample [Mapzen/Amazon Terrain Tiles](https://registry.opendata.aws/terrain-tiles/).
 
-```JSON
+### Elevation unit conversion
+
+By default, OTP expects the elevation data to use metres. However, by setting `elevationUnitMultiplier` in `build-config.json`,
+it is possible to define a multiplier that converts the elevation values from some other unit to metres.
+>>>>>>> dev-1.x
+
+```JSONC
 // build-config.json
 {
+<<<<<<< HEAD
   "writeCachedElevations": true
 }
 ```
@@ -241,6 +251,12 @@ After building the graph, a file called `cached_elevations.obj` will be written 
 In graph builds, the elevation module will attempt to read the `cached_elevations.obj` file from the cache directory. The cache directory defaults to `/var/otp/cache`, but this can be overriden via the CLI argument `--cache <directory>`. For the same graph build for multiple Northeast US states, the time it took with using this predownloaded and precalculated data became 543.7 seconds (roughly 9 minutes).
 
 The cached data is a lookup table where the coordinate sequences of respective street edges are used as keys for calculated data. Therefore, it is expected that over time various edits to OpenStreetMap will cause this cached data to become stale and not include new OSM ways. Therefore, periodic update of this cached data is recommended.
+=======
+  // Correct conversation multiplier when source data uses decimetres instead of metres
+  "elevationUnitMultiplier": 0.1
+}
+```
+>>>>>>> dev-1.x
 
 ## Fares configuration
 
@@ -250,7 +266,7 @@ For more complex scenarios or to handle bike rental fares, it is necessary to ma
 by defining a `combinationStrategy` parameter, and a list of sub-fares to combine (all fields starting with `fare`
 are considered to be sub-fares).
 
-```JSON
+```JSONC
 // build-config.json
 {
   // Select the custom fare "seattle"
@@ -262,7 +278,7 @@ are considered to be sub-fares).
 }
 ```
 
-```JSON
+```JSONC
 // build-config.json
 {
   "fares": {
@@ -308,14 +324,15 @@ It is possible to adjust how OSM data is interpreted by OpenTripPlanner when bui
 OSM tags have different meanings in different countries, and how the roads in a particular country or region are tagged affects routing. As an example are roads tagged with `highway=trunk (mainly) walkable in Norway, but forbidden in some other countries. This might lead to OTP being unable to snap stops to these roads, or by giving you poor routing results for walking and biking.
 You can adjust which road types that are accessible by foot, car & bicycle as well as speed limits, suitability for biking and walking.
 
-There are currently 2 wayPropertySets defined;
+There are currently 3 wayPropertySets defined;
 
 - `default` which is based on California/US mapping standard
 - `norway` which is adjusted to rules and speeds in Norway
+- `uk` which is adjusted to rules and speed in the UK
 
 To add your own custom property set have a look at `org.opentripplanner.graph_builder.module.osm.NorwayWayPropertySet` and `org.opentripplanner.graph_builder.module.osm.DefaultWayPropertySet`. If you choose to mainly rely on the default rules, make sure you add your own rules first before applying the default ones. The mechanism is that for any two identical tags, OTP will use the first one.
 
-```JSON
+```JSONC
 // build-config.json
 {
   osmWayPropertySet: "norway"
@@ -328,7 +345,7 @@ To add your own custom property set have a look at `org.opentripplanner.graph_bu
 You can define a custom naming scheme for elements drawn from OSM by defining an `osmNaming` field in `build-config.json`,
 such as:
 
-```JSON
+```JSONC
 // build-config.json
 {
   "osmNaming": "portland"
@@ -345,7 +362,7 @@ It is possible to load in restricted micromobility travel and rental parking are
 rental vehicles is forbidden. Each file must contain GeoJson with a Feature or FeatureCollection that contains only Polygons
 or MultiPolygons. If any part of the geometry of a StreetEdge intersects any part of the given GeoJSON, then the entire StreetEdge will be marked as either not allowing traversal or not allowing the dropoff of a rented micromobility vehicle depending on the restriction being analyzed. The values of these keys can be either a url or a file path. For example:
 
-```JSON
+```JSONC
 // build-config.json
 {
   "micromobilityTravelRestrictionsUrlOrFile": "file:/some/path/no_riding_zones.geojson",
@@ -359,6 +376,15 @@ or MultiPolygons. If any part of the geometry of a StreetEdge intersects any par
 This section covers all options that can be set for each router using the `router-config.json` file.
 These options can be applied by the OTP server without rebuilding the graph.
 
+config key | description | value type | value default | notes
+---------- | ----------- | ---------- | ------------- | -----
+`routingDefaults` | Default routing parameters, which will be applied to every request | object |  | see [routing defaults](#routing-defaults)
+`timeout` | maximum time limit for route queries | double | null | units: seconds; see [timeouts](#timeouts)
+`timeouts` | when returning multiple itineraries, set different maximum time limits for the 1st, 2nd, etc. itinerary | array of doubles | `[5, 4, 2]` | units: seconds; see [timeouts](#timeouts)
+`requestLogFile` | Path to a plain-text file where requests will be logged | string | null | see [logging incoming requests](#logging-incoming-requests)
+`boardTimes` | change boarding times by mode | object | null | see [boarding and alighting times](#boarding-and-alighting-times)
+`alightTimes` | change alighting times by mode | object | null | see [boarding and alighting times](#boarding-and-alighting-times)
+`updaters` | configure real-time updaters, such as GTFS-realtime feeds | object | null | see [configuring real-time updaters](#configuring-real-time-updaters)
 
 ## Routing defaults
 
@@ -367,13 +393,17 @@ internally that are not exposed via the API. You may want to change the default 
 i.e. the value which will be applied unless it is overridden in a web API request.
 
 A full list of them can be found in the RoutingRequest class
+<<<<<<< HEAD
 
 [in the Javadoc](http://otp-docs.ibi-transit.com/JavaDoc/org/opentripplanner/routing/core/RoutingRequest.html).
 
+=======
+[in the Javadoc](http://dev.opentripplanner.org/javadoc/1.4.0/org/opentripplanner/routing/core/RoutingRequest.html).
+>>>>>>> dev-1.x
 Any public field or setter method in this class can be given a default value using the routingDefaults section of
 `router-config.json` as follows:
 
-```JSON
+```JSONC
 {
     "routingDefaults": {
         "walkSpeed": 2.0,
@@ -388,7 +418,11 @@ Any public field or setter method in this class can be given a default value usi
 The routing request parameter `mode` determines which transport modalities should be considered when calculating the list
 of routes.
 
+<<<<<<< HEAD
 Some modes (mostly bicycle and car) also have optional qualifiers `RENT`, `HAIL` or `PARK` to specify if vehicles are to be parked at a station or rented. In theory
+=======
+Some modes (mostly bicycle and car) also have optional qualifiers `RENT` and `PARK` to specify if vehicles are to be parked at a station or rented. In theory
+>>>>>>> dev-1.x
 this can also apply to other modes but makes sense only in select cases which are listed below.
 
 Whether a transport mode is available highly depends on the input feeds (GTFS, OSM, bike sharing feeds) and the graph building options supplied to OTP.
@@ -428,6 +462,7 @@ The complete list of modes are:
 
     _Prerequisite:_ Park-and-ride areas near the station need to be present in the OSM input file.
 
+<<<<<<< HEAD
 - `CAR_RENT`: Taking a rented, shared-mobility car for part or the entirety of the route.
 
     _Prerequisite:_ Vehicle positions need to be added to OTP as dynamic data feeds.
@@ -445,6 +480,8 @@ The complete list of modes are:
     _Prerequisite:_ Vehicle positions need to be added to OTP  as dynamic data feeds.
 
     For dynamic vehicle positions configure an input feed. See [Configuring real-time updaters](Configuration.md#configuring-real-time-updaters).
+=======
+>>>>>>> dev-1.x
 
 The following modes are 1-to-1 mappings from the [GTFS `route_type`](https://developers.google.com/transit/gtfs/reference/#routestxt):
 
@@ -506,7 +543,7 @@ and this delays the response. You can set timeouts to avoid tying up server reso
 your users receive a timely response. When a search times out, a WARN level log entry is made with information that can
 help identify problematic searches and improve our routing methods. The simplest timeout option is:
 
-```JSON
+```JSONC
 // router-config.json
 {
   "timeout": 5.5
@@ -517,7 +554,7 @@ This specifies a single timeout in (optionally fractional) seconds. Searching is
 paths already found are returned to the client. This is equivalent to specifying a `timeouts` array with a single element.
 The alternative is:
 
-```JSON
+```JSONC
 // router-config.json
 {
   "timeouts": [5, 4, 3, 1]
@@ -541,7 +578,7 @@ You can log some characteristics of trip planning requests in a file for later a
 operators find this information useful for identifying existing or unmet transportation demand. Logging will be
 performed only if you specify a log file name in the router config:
 
-```JSON
+```JSONC
 // router-config.json
 {
   "requestLogFile": "/var/otp/request.log"
@@ -612,7 +649,7 @@ The generic KML needs to be in format like
 </Document></kml>
 ```
 
-### Configuration
+### Configuring real-time updaters
 
 Real-time data can be provided using either a pull or push system. In a pull configuration, the GTFS-RT consumer polls the
 real-time provider over HTTP. That is to say, OTP fetches a file from a web server every few minutes. In the push
@@ -623,7 +660,7 @@ Real-time data sources are configured in `router-config.json`. The `updaters` se
 of which has a `type` field and other configuration fields specific to that type. Common to all updater entries that
 connect to a network resource is the `url` field.
 
-```JSON
+```JSONC
 // router-config.json
 {
     // Routing defaults are any public field or setter in the Java class
@@ -699,15 +736,6 @@ connect to a network resource is the `url` field.
         // Streaming differential GTFS-RT TripUpdates over websockets
         {
             "type": "websocket-gtfs-rt-updater"
-        },
-
-        // OpenTraffic data
-        {
-          "type": "opentraffic-updater",
-          "frequencySec": -1,
-          // relative to OTP's working directory, where is traffic data stored.
-          // Should have subdirectories z/x/y.traffic.pbf (i.e. a tile tree of traffic tiles)
-          "tileDirectory": "traffic"
         }
     ]
 }
@@ -718,7 +746,7 @@ Steps to add a GBFS feed to a router:
 
 - Add one entry in the `updater` field of `router-config.json` in the format
 
-```JSON
+```JSONC
 {
      "type": "bike-rental",
      "frequencySec": 60,

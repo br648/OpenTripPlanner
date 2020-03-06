@@ -5,6 +5,7 @@ import static org.opentripplanner.api.resource.ServerInfo.Q;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -32,7 +33,6 @@ import org.opentripplanner.api.model.RouterList;
 import org.opentripplanner.graph_builder.GraphBuilder;
 import org.opentripplanner.routing.error.GraphNotFoundException;
 import org.opentripplanner.routing.graph.Graph;
-import org.opentripplanner.routing.graph.Graph.LoadLevel;
 import org.opentripplanner.routing.impl.MemoryGraphSource;
 import org.opentripplanner.routing.services.GraphService;
 import org.opentripplanner.standalone.CommandLineParameters;
@@ -188,7 +188,6 @@ public class Routers {
     public Response postGraphOverWire (
             @PathParam("routerId") String routerId, 
             @QueryParam("preEvict") @DefaultValue("true") boolean preEvict, 
-            @QueryParam("loadLevel") @DefaultValue("FULL") LoadLevel level,
             InputStream is) {
         if (preEvict) {
             LOG.debug("pre-evicting graph");
@@ -197,7 +196,7 @@ public class Routers {
         LOG.debug("deserializing graph from POST data stream...");
         Graph graph;
         try {
-            graph = Graph.load(is, level);
+            graph = Graph.load(new ObjectInputStream(is));
             GraphService graphService = otpServer.getGraphService();
             graphService.registerGraph(routerId, new MemoryGraphSource(routerId, graph));
             return Response.status(Status.CREATED).entity(graph.toString() + "\n").build();

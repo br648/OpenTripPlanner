@@ -1,8 +1,8 @@
 package org.opentripplanner.api.resource;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
 import org.opentripplanner.api.model.Itinerary;
 import org.opentripplanner.api.model.Leg;
 import org.opentripplanner.api.model.Place;
@@ -42,6 +42,8 @@ import org.opentripplanner.routing.edgetype.RentABikeOnEdge;
 import org.opentripplanner.routing.edgetype.SimpleTransfer;
 import org.opentripplanner.routing.edgetype.StreetEdge;
 import org.opentripplanner.routing.edgetype.TripPattern;
+import org.opentripplanner.routing.edgetype.flex.PartialPatternHop;
+import org.opentripplanner.routing.edgetype.flex.TemporaryDirectPatternHop;
 import org.opentripplanner.routing.error.TransportationNetworkCompanyAvailabilityException;
 import org.opentripplanner.routing.error.TrivialPathException;
 import org.opentripplanner.routing.graph.Edge;
@@ -252,9 +254,13 @@ public abstract class GraphPathToTripPlanConverter {
 
     private static Calendar makeCalendar(State state) {
         RoutingContext rctx = state.getContext();
-        TimeZone timeZone = rctx.graph.getTimeZone(); 
+        TimeZone timeZone = rctx.graph.getTimeZone();
+        return makeCalendar(timeZone, state.getTimeInMillis());
+    }
+
+    private static Calendar makeCalendar(TimeZone timeZone, long timeMillis) {
         Calendar calendar = Calendar.getInstance(timeZone);
-        calendar.setTimeInMillis(state.getTimeInMillis());
+        calendar.setTimeInMillis(timeMillis);
         return calendar;
     }
 
@@ -264,11 +270,11 @@ public abstract class GraphPathToTripPlanConverter {
      * @param edges The array of input edges
      * @return The coordinates of the points on the edges
      */
-    private static CoordinateArrayListSequence makeCoordinates(Edge[] edges) {
+    public static CoordinateArrayListSequence makeCoordinates(Edge[] edges) {
         CoordinateArrayListSequence coordinates = new CoordinateArrayListSequence();
 
         for (Edge edge : edges) {
-            LineString geometry = edge.getGeometry();
+            LineString geometry = edge.getDisplayGeometry();
 
             if (geometry != null) {
                 if (coordinates.size() == 0) {
@@ -801,6 +807,11 @@ public abstract class GraphPathToTripPlanConverter {
             leg.tripId = trip.getId();
             leg.tripShortName = trip.getTripShortName();
             leg.tripBlockId = trip.getBlockId();
+            leg.flexDrtAdvanceBookMin = trip.getDrtAdvanceBookMin();
+            leg.flexDrtPickupMessage = trip.getDrtPickupMessage();
+            leg.flexDrtDropOffMessage = trip.getDrtDropOffMessage();
+            leg.flexFlagStopPickupMessage = trip.getContinuousPickupMessage();
+            leg.flexFlagStopDropOffMessage = trip.getContinuousDropOffMessage();
 
             if (serviceDay != null) {
                 leg.serviceDate = serviceDay.getServiceDate().getAsString();
@@ -809,6 +820,30 @@ public abstract class GraphPathToTripPlanConverter {
             if (leg.headsign == null) {
                 leg.headsign = trip.getTripHeadsign();
             }
+
+            Edge edge = states[states.length - 1].backEdge;
+            if (edge instanceof TemporaryDirectPatternHop) {
+                leg.callAndRide = true;
+            }
+            if (edge instanceof PartialPatternHop) {
+                PartialPatternHop hop = (PartialPatternHop) edge;
+                int directTime = hop.getDirectVehicleTime();
+                TripTimes tt = states[states.length - 1].getTripTimes();
+                int maxTime = tt.getDemandResponseMaxTime(directTime);
+                int avgTime = tt.getDemandResponseAvgTime(directTime);
+                int delta = maxTime - avgTime;
+                if (directTime != 0 && delta > 0) {
+                    if (hop.isDeviatedRouteBoard()) {
+                        long maxStartTime = leg.startTime.getTimeInMillis() + (delta * 1000);
+                        leg.flexCallAndRideMaxStartTime = makeCalendar(leg.startTime.getTimeZone(), maxStartTime);
+                    }
+                    if (hop.isDeviatedRouteAlight()) {
+                        long minEndTime = leg.endTime.getTimeInMillis() - (delta * 1000);
+                        leg.flexCallAndRideMinEndTime = makeCalendar(leg.endTime.getTimeZone(), minEndTime);
+                    }
+                }
+            }
+
         }
     }
 
@@ -904,6 +939,23 @@ public abstract class GraphPathToTripPlanConverter {
                 place.stopSequence = tripTimes.getStopSequence(place.stopIndex);
             }
             place.vertexType = VertexType.TRANSIT;
+            // FIXME!!!
+            place.boardAlightType = BoardAlightType.DEFAULT;
+            if (edge instanceof PartialPatternHop) {
+                PartialPatternHop hop = (PartialPatternHop) edge;
+                if (hop.hasBoardArea() && !endOfLeg) {
+                    place.flagStopArea = PolylineEncoder.createEncodings(hop.getBoardArea());
+                }
+                if (hop.hasAlightArea() && endOfLeg) {
+                    place.flagStopArea = PolylineEncoder.createEncodings(hop.getAlightArea());
+                }
+                if ((endOfLeg && hop.isFlagStopAlight()) || (!endOfLeg && hop.isFlagStopBoard())) {
+                    place.boardAlightType = BoardAlightType.FLAG_STOP;
+                }
+                if ((endOfLeg && hop.isDeviatedRouteAlight()) || (!endOfLeg && hop.isDeviatedRouteBoard())) {
+                    place.boardAlightType = BoardAlightType.DEVIATED;
+                }
+            }
         } else if(vertex instanceof BikeRentalStationVertex) {
             place.bikeShareId = ((BikeRentalStationVertex) vertex).getId();
             LOG.trace("Added bike share Id {} to place", place.bikeShareId);

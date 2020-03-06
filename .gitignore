@@ -9,6 +9,7 @@ otp-admin-client/src/main/webapp/js/otp-min.js
 otp-rest-servlet/src/main/resources/
 otp-openlayers-client/src/main/webapp/js/lib-min.js
 otp-openlayers-client/src/main/webapp/js/otp-min.js
+src/test/resources/org/opentripplanner/graph_builder/module/ned/*
 *~
 .classpath
 .project
@@ -28,3 +29,4 @@ gen-py/
 _site/
 /otp
 /otp-batch-analyst
+*.DS_Store

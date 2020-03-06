@@ -13,17 +13,12 @@
 
 package org.opentripplanner.routing.edgetype;
 
-import com.vividsolutions.jts.geom.LineString;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.core.State;
 import org.opentripplanner.routing.core.StateEditor;
 import org.opentripplanner.routing.core.TraverseMode;
-import org.opentripplanner.routing.graph.Edge;
-import org.opentripplanner.routing.graph.Vertex;
 import org.opentripplanner.routing.vertextype.VehicleRentalStationVertex;
 import org.opentripplanner.routing.vertextype.StreetVertex;
-
-import java.util.Locale;
 
 /**
  * This represents the connection between a street vertex and a vehicle rental station vertex.

@@ -11,6 +11,7 @@ import org.opentripplanner.graph_builder.module.GtfsModule;
 import org.opentripplanner.graph_builder.module.PruneFloatingIslands;
 import org.opentripplanner.graph_builder.module.StreetLinkerModule;
 import org.opentripplanner.graph_builder.module.TransitToTaggedStopsModule;
+import org.opentripplanner.graph_builder.module.map.BusRouteStreetMatcher;
 import org.opentripplanner.graph_builder.module.ned.DegreeGridNEDTileSource;
 import org.opentripplanner.graph_builder.module.ned.ElevationModule;
 import org.opentripplanner.graph_builder.module.ned.GeotiffGridCoverageFactoryImpl;
@@ -24,7 +25,6 @@ import org.opentripplanner.openstreetmap.services.OpenStreetMapProvider;
 import org.opentripplanner.reflect.ReflectionLibrary;
 import org.opentripplanner.routing.core.RoutingRequest;
 import org.opentripplanner.routing.graph.Graph;
-import org.opentripplanner.routing.graph.Graph.LoadLevel;
 import org.opentripplanner.standalone.CommandLineParameters;
 import org.opentripplanner.standalone.GraphBuilderParameters;
 import org.opentripplanner.standalone.OTPMain;
@@ -87,7 +87,7 @@ public class GraphBuilder implements Runnable {
     public void setBaseGraph(String baseGraph) {
         this.baseGraph = baseGraph;
         try {
-            graph = Graph.load(new File(baseGraph), LoadLevel.FULL);
+            graph = Graph.load(new File(baseGraph));
         } catch (Exception e) {
             throw new RuntimeException("error loading base graph");
         }
@@ -264,6 +264,9 @@ public class GraphBuilder implements Runnable {
             gtfsModule.setFareServiceFactory(builderParams.fareServiceFactory);
             graphBuilder.addModule(gtfsModule);
             if ( hasOSM ) {
+                if (builderParams.matchBusRoutesToStreets) {
+                    graphBuilder.addModule(new BusRouteStreetMatcher());
+                }
                 graphBuilder.addModule(new TransitToTaggedStopsModule());
             }
         }
