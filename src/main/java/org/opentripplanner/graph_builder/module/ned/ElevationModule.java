@@ -128,17 +128,6 @@ public class ElevationModule implements GraphBuilderModule {
         // interpolation internally)
         coverage = (gridCov instanceof GridCoverage2D) ? Interpolator2D.create(
                 (GridCoverage2D) gridCov, new InterpolationBilinear()) : gridCov;
-        try {
-            transformer = CRS.findMathTransform(
-                GeometryUtils.WGS84_XY,
-                coverage.getCoordinateReferenceSystem(),
-                true
-            );
-        } catch (FactoryException e) {
-            log.error("Could not find an appropriate transformer!");
-            throw new RuntimeException(e);
-        }
-
         // try to load in the cached elevation data
         if (readCachedElevations) {
             try {
@@ -503,7 +492,7 @@ public class ElevationModule implements GraphBuilderModule {
                     coordList.toArray(coordArr));
 
             setEdgeElevationProfile(ee, elevPCS, graph);
-        } catch (PointOutsideCoverageException | TransformException e) {
+        } catch (PointOutsideCoverageException e) {
             log.debug("Error processing elevation for edge: {} due to error: {}", ee, e);
         }
     }
@@ -522,7 +511,7 @@ public class ElevationModule implements GraphBuilderModule {
      * @param c the coordinate (NAD83)
      * @return elevation in meters
      */
-    private double getElevation(Coordinate c) throws PointOutsideCoverageException, TransformException {
+    private double getElevation(Coordinate c) throws PointOutsideCoverageException {
         return getElevation(c.x, c.y);
     }
 
@@ -533,19 +522,16 @@ public class ElevationModule implements GraphBuilderModule {
      * @param y the query latitude (NAD83)
      * @return elevation in meters
      */
-    private double getElevation(double x, double y) throws PointOutsideCoverageException, TransformException {
-        double values[] = new double[1];
+    private double getElevation(double x, double y) throws PointOutsideCoverageException {
+        double[] values = new double[1];
         try {
             // We specify a CRS here because otherwise the coordinates are assumed to be in the coverage's native CRS.
             // That assumption is fine when the coverage happens to be in longitude-first WGS84 but we want to support
             // GeoTIFFs in various projections. Note that GeoTools defaults to strict EPSG axis ordering of (lat, long)
             // for DefaultGeographicCRS.WGS84, but OTP is using (long, lat) throughout and assumes unprojected DEM
             // rasters to also use (long, lat).
-            DirectPosition2D projectedPosition = new DirectPosition2D(GeometryUtils.WGS84_XY, x, y);
-            DirectPosition2D transformedPosition = new DirectPosition2D();
-            transformer.transform(projectedPosition, transformedPosition);
-            coverage.evaluate(transformedPosition, values);
-        } catch (PointOutsideCoverageException | TransformException e) {
+            coverage.evaluate(new DirectPosition2D(GeometryUtils.WGS84_XY, x, y), values);
+        } catch (PointOutsideCoverageException e) {
             nPointsOutsideDEM.incrementAndGet();
             throw e;
         }
